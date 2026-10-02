@@ -193,14 +193,7 @@
 
   </div>
 
-  <script type="module">
-    import { FFmpeg } from "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js";
-    import { fetchFile, toBlobURL } from "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js";
-
-    const ffmpeg = new FFmpeg();
-    let ffmpegCarregado = false;
-    let arquivoSelecionado = null;
-
+  <script>
     const inputArquivo = document.getElementById("arquivoVideo");
     const nomeArquivo = document.getElementById("nomeArquivo");
     const btnConverter = document.getElementById("btnConverter");
@@ -210,44 +203,19 @@
     const resultado = document.getElementById("resultado");
     const btnSalvar = document.getElementById("btnSalvar");
 
-    ffmpeg.on("log", ({ message }) => {
-      console.log("FFmpeg:", message);
-    });
-
-    ffmpeg.on("progress", ({ progress }) => {
-      const porcentagem = Math.max(0, Math.min(100, progress * 100));
-      barra.style.width = porcentagem + "%";
-      status.textContent = "⚙️ Convertendo... " + Math.round(porcentagem) + "%";
-    });
+    let arquivoSelecionado = null;
 
     inputArquivo.addEventListener("change", function() {
       arquivoSelecionado = this.files[0];
-
-      if (!arquivoSelecionado) {
-        return;
-      }
+      if (!arquivoSelecionado) return;
 
       nomeArquivo.style.display = "block";
       nomeArquivo.textContent = "📹 " + arquivoSelecionado.name;
       btnConverter.disabled = false;
       resultado.style.display = "none";
-      status.textContent = "Vídeo selecionado. Pronto para converter.";
+      status.textContent = "Vídeo selecionado. Pronto para extrair o áudio.";
       barra.style.width = "0%";
     });
-
-    async function carregarFFmpeg() {
-      if (ffmpegCarregado) return;
-
-      status.textContent = "⏳ Carregando o conversor...";
-      const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
-
-      await ffmpeg.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm")
-      });
-
-      ffmpegCarregado = true;
-    }
 
     btnConverter.addEventListener("click", async function() {
       if (!arquivoSelecionado) return;
@@ -255,44 +223,75 @@
       btnConverter.disabled = true;
       resultado.style.display = "none";
       progresso.style.display = "block";
-      barra.style.width = "0%";
+      barra.style.width = "30%";
+      status.textContent = "⏳ Processando vídeo...";
 
       try {
-        await carregarFFmpeg();
+        // Criar um elemento de vídeo temporário na memória
+        const videoElement = document.createElement('video');
+        videoElement.src = URL.createObjectURL(arquivoSelecionado);
+        videoElement.muted = true;
+        
+        await new Promise((resolve, reject) => {
+          videoElement.onloadedmetadata = () => resolve();
+          videoElement.onerror = () => reject(new Error("Não foi possível ler o arquivo de vídeo."));
+        });
 
-        status.textContent = "📥 Preparando o vídeo...";
+        barra.style.width = "60%";
+        status.textContent = "🎧 Extraindo faixa de áudio...";
 
-        await ffmpeg.writeFile("entrada.mp4", await fetchFile(arquivoSelecionado));
+        // Usar Streams / MediaElementAudioSource para extrair o áudio diretamente
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaElementSource(videoElement);
+        const destination = audioCtx.createMediaStreamDestination();
+        source.connect(destination);
+        source.connect(audioCtx.destination);
 
-        status.textContent = "🎧 Extraindo o áudio...";
+        const mediaRecorder = new MediaRecorder(destination.stream, {
+          mimeType: MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm'
+        });
 
-        await ffmpeg.exec([
-          "-i", "entrada.mp4",
-          "-vn",
-          "-acodec", "copy",
-          "audio.m4a"
-        ]);
+        const chunks = [];
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        
+        mediaRecorder.onstop = () => {
+          const blobType = mediaRecorder.mimeType;
+          const extension = blobType.includes('mp4') ? 'm4a' : 'webm';
+          const blob = new Blob(chunks, { type: blobType });
+          const url = URL.createObjectURL(blob);
 
-        status.textContent = "💾 Preparando o arquivo...";
+          const nomeOriginal = arquivoSelecionado.name.replace(/\.[^/.]+$/, "");
+          btnSalvar.href = url;
+          btnSalvar.download = nomeOriginal + "." + extension;
 
-        const audioData = await ffmpeg.readFile("audio.m4a");
-        const blob = new Blob([audioData.buffer], { type: "audio/mp4" });
-        const url = URL.createObjectURL(blob);
+          barra.style.width = "100%";
+          resultado.style.display = "block";
+          status.textContent = "✅ Áudio pronto com sucesso!";
+          btnConverter.disabled = false;
+        };
 
-        const nomeOriginal = arquivoSelecionado.name.replace(/\.[^/.]+$/, "");
-        btnSalvar.href = url;
-        btnSalvar.download = nomeOriginal + ".m4a";
+        mediaRecorder.start();
+        videoElement.play();
 
-        resultado.style.display = "block";
-        status.textContent = "✅ Áudio pronto!";
+        videoElement.onended = () => {
+          mediaRecorder.stop();
+          audioCtx.close();
+        };
+
+        // Segurança caso o vídeo demore ou ocorra interrupção
+        setTimeout(() => {
+          if (videoElement.paused && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+          }
+        }, (videoElement.duration * 1000) + 2000);
 
       } catch (erro) {
-        console.error("ERRO COMPLETO:", erro);
-        status.textContent = "❌ Ocorreu um erro ao carregar/convertendo.";
-        alert("ERRO DO CONVERSOR:\n\n" + (erro?.message || erro?.toString() || "Erro ao processar áudio. Tente novamente."));
+        console.error("ERRO:", erro);
+        status.textContent = "❌ Erro ao extrair áudio.";
+        alert("Erro ao processar o arquivo: " + (erro.message || erro));
+        btnConverter.disabled = false;
+        progresso.style.display = "none";
       }
-
-      btnConverter.disabled = false;
     });
   </script>
 
