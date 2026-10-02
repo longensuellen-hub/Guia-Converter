@@ -179,7 +179,7 @@
         id="btnSalvar"
         class="salvar"
         href="#"
-        download="audio.m4a"
+        download="audio.mp4"
       >
         💾 Salvar áudio
       </a>
@@ -193,357 +193,107 @@
 
   </div>
 
-
   <script type="module">
+    import { FFmpeg } from "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js";
+    import { fetchFile, toBlobURL } from "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js";
 
-   <script type="module">
+    const ffmpeg = new FFmpeg();
+    let ffmpegCarregado = false;
+    let arquivoSelecionado = null;
 
-import { FFmpeg } from
-  "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js";
+    const inputArquivo = document.getElementById("arquivoVideo");
+    const nomeArquivo = document.getElementById("nomeArquivo");
+    const btnConverter = document.getElementById("btnConverter");
+    const status = document.getElementById("status");
+    const progresso = document.getElementById("progresso");
+    const barra = document.getElementById("barra");
+    const resultado = document.getElementById("resultado");
+    const btnSalvar = document.getElementById("btnSalvar");
 
-import {
-  fetchFile,
-  toBlobURL
-} from
-  "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/esm/index.js";
+    ffmpeg.on("log", ({ message }) => {
+      console.log("FFmpeg:", message);
+    });
 
+    ffmpeg.on("progress", ({ progress }) => {
+      const porcentagem = Math.max(0, Math.min(100, progress * 100));
+      barra.style.width = porcentagem + "%";
+      status.textContent = "⚙️ Convertendo... " + Math.round(porcentagem) + "%";
+    });
 
-const ffmpeg = new FFmpeg();
+    inputArquivo.addEventListener("change", function() {
+      arquivoSelecionado = this.files[0];
 
-let ffmpegCarregado = false;
-let arquivoSelecionado = null;
+      if (!arquivoSelecionado) {
+        return;
+      }
 
+      nomeArquivo.style.display = "block";
+      nomeArquivo.textContent = "📹 " + arquivoSelecionado.name;
+      btnConverter.disabled = false;
+      resultado.style.display = "none";
+      status.textContent = "Vídeo selecionado. Pronto para converter.";
+      barra.style.width = "0%";
+    });
 
-const inputArquivo =
-  document.getElementById("arquivoVideo");
+    async function carregarFFmpeg() {
+      if (ffmpegCarregado) return;
 
-const nomeArquivo =
-  document.getElementById("nomeArquivo");
+      status.textContent = "⏳ Carregando o conversor...";
+      const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
 
-const btnConverter =
-  document.getElementById("btnConverter");
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm")
+      });
 
-const status =
-  document.getElementById("status");
-
-const progresso =
-  document.getElementById("progresso");
-
-const barra =
-  document.getElementById("barra");
-
-const resultado =
-  document.getElementById("resultado");
-
-const btnSalvar =
-  document.getElementById("btnSalvar");
-
-
-// ----------------------------------------
-// LOG DO FFMPEG
-// ----------------------------------------
-
-ffmpeg.on("log", ({ message }) => {
-
-  console.log("FFmpeg:", message);
-
-});
-
-
-// ----------------------------------------
-// PROGRESSO
-// ----------------------------------------
-
-ffmpeg.on("progress", ({ progress }) => {
-
-  const porcentagem =
-    Math.max(
-      0,
-      Math.min(100, progress * 100)
-    );
-
-  barra.style.width =
-    porcentagem + "%";
-
-  status.textContent =
-    "⚙️ Convertendo... " +
-    Math.round(porcentagem) +
-    "%";
-
-});
-
-
-// ----------------------------------------
-// SELEÇÃO DO VÍDEO
-// ----------------------------------------
-
-inputArquivo.addEventListener(
-  "change",
-  function() {
-
-    arquivoSelecionado =
-      this.files[0];
-
-    if (!arquivoSelecionado) {
-      return;
+      ffmpegCarregado = true;
     }
 
-    nomeArquivo.style.display =
-      "block";
+    btnConverter.addEventListener("click", async function() {
+      if (!arquivoSelecionado) return;
 
-    nomeArquivo.textContent =
-      "📹 " +
-      arquivoSelecionado.name;
+      btnConverter.disabled = true;
+      resultado.style.display = "none";
+      progresso.style.display = "block";
+      barra.style.width = "0%";
 
-    btnConverter.disabled =
-      false;
+      try {
+        await carregarFFmpeg();
 
-    resultado.style.display =
-      "none";
+        status.textContent = "📥 Preparando o vídeo...";
 
-    status.textContent =
-      "Vídeo selecionado. Pronto para converter.";
+        await ffmpeg.writeFile("entrada.mp4", await fetchFile(arquivoSelecionado));
 
-    barra.style.width =
-      "0%";
+        status.textContent = "🎧 Extraindo o áudio...";
 
-  }
-);
-
-
-// ----------------------------------------
-// CARREGAR FFMPEG
-// ----------------------------------------
-
-async function carregarFFmpeg() {
-
-  if (ffmpegCarregado) {
-    return;
-  }
-
-  status.textContent =
-    "⏳ Carregando o conversor...";
-
-  const baseURL =
-    "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
-
-
-  console.log(
-    "Carregando FFmpeg..."
-  );
-
-
-  await ffmpeg.load({
-
-    coreURL:
-      await toBlobURL(
-        `${baseURL}/ffmpeg-core.js`,
-        "text/javascript"
-      ),
-
-    wasmURL:
-      await toBlobURL(
-        `${baseURL}/ffmpeg-core.wasm`,
-        "application/wasm"
-      )
-
-  });
-
-
-  ffmpegCarregado =
-    true;
-
-
-  console.log(
-    "FFmpeg carregado!"
-  );
-
-}
-
-
-// ----------------------------------------
-// CONVERTER
-// ----------------------------------------
-
-btnConverter.addEventListener(
-  "click",
-  async function() {
-
-    if (!arquivoSelecionado) {
-      return;
-    }
-
-
-    btnConverter.disabled =
-      true;
-
-    resultado.style.display =
-      "none";
-
-    progresso.style.display =
-      "block";
-
-    barra.style.width =
-      "0%";
-
-
-    try {
-
-      // 1 — carregar FFmpeg
-
-      await carregarFFmpeg();
-
-
-      // 2 — enviar vídeo para o FFmpeg
-
-      status.textContent =
-        "📥 Preparando o vídeo...";
-
-
-      console.log(
-        "Arquivo:",
-        arquivoSelecionado.name
-      );
-
-      console.log(
-        "Tamanho:",
-        arquivoSelecionado.size
-      );
-
-
-      await ffmpeg.writeFile(
-        "entrada.mp4",
-        await fetchFile(
-          arquivoSelecionado
-        )
-      );
-
-
-      console.log(
-        "Vídeo enviado para o FFmpeg."
-      );
-
-
-      // 3 — extrair áudio
-
-      status.textContent =
-        "🎧 Extraindo o áudio...";
-
-
-      const resultadoFFmpeg =
         await ffmpeg.exec([
-
-          "-i",
-          "entrada.mp4",
-
+          "-i", "entrada.mp4",
           "-vn",
-
-          "-c:a",
-          "aac",
-
-          "-b:a",
-          "192k",
-
+          "-acodec", "copy",
           "audio.m4a"
-
         ]);
 
+        status.textContent = "💾 Preparando o arquivo...";
 
-      console.log(
-        "Resultado FFmpeg:",
-        resultadoFFmpeg
-      );
+        const audioData = await ffmpeg.readFile("audio.m4a");
+        const blob = new Blob([audioData.buffer], { type: "audio/mp4" });
+        const url = URL.createObjectURL(blob);
 
+        const nomeOriginal = arquivoSelecionado.name.replace(/\.[^/.]+$/, "");
+        btnSalvar.href = url;
+        btnSalvar.download = nomeOriginal + ".m4a";
 
-      // 4 — ler o áudio produzido
+        resultado.style.display = "block";
+        status.textContent = "✅ Áudio pronto!";
 
-      status.textContent =
-        "💾 Preparando o arquivo...";
+      } catch (erro) {
+        console.error("ERRO COMPLETO:", erro);
+        status.textContent = "❌ Ocorreu um erro ao carregar/convertendo.";
+        alert("ERRO DO CONVERSOR:\n\n" + (erro?.message || erro?.toString() || "Erro ao processar áudio. Tente novamente."));
+      }
 
-
-      const audio =
-        await ffmpeg.readFile(
-          "audio.m4a"
-        );
-
-
-      console.log(
-        "Áudio gerado:",
-        audio
-      );
-
-
-      // 5 — criar arquivo para download
-
-      const blob =
-        new Blob(
-          [audio.buffer],
-          {
-            type: "audio/mp4"
-          }
-        );
-
-
-      const url =
-        URL.createObjectURL(blob);
-
-
-      // 6 — preparar botão salvar
-
-      const nomeOriginal =
-        arquivoSelecionado.name
-          .replace(/\.[^/.]+$/, "");
-
-
-      btnSalvar.href =
-        url;
-
-      btnSalvar.download =
-        nomeOriginal + ".m4a";
-
-
-      resultado.style.display =
-        "block";
-
-
-      status.textContent =
-        "✅ Áudio pronto!";
-
-
-    } catch (erro) {
-
-      console.error(
-        "ERRO COMPLETO:",
-        erro
-      );
-
-
-      status.textContent =
-        "❌ Ocorreu um erro.";
-
-
-      // Mostra o erro na própria tela
-      // para não precisarmos abrir o console.
-
-      alert(
-        "ERRO DO CONVERSOR:\n\n" +
-        (
-          erro?.message ||
-          erro?.toString() ||
-          "Erro desconhecido"
-        )
-      );
-
-    }
-
-
-    btnConverter.disabled =
-      false;
-
-  }
-);
-
- 
+      btnConverter.disabled = false;
+    });
   </script>
 
 </body>
