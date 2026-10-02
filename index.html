@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Guia Converter</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #ffd86b, #f6a23a);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      border-radius: 24px;
+      padding: 30px 24px;
+      text-align: center;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      color: #222;
+    }
+
+    .subtitulo {
+      margin: 0 0 25px;
+      color: #666;
+      font-size: 16px;
+    }
+
+    .icone {
+      font-size: 55px;
+      margin-bottom: 10px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .botao {
+      display: inline-block;
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 14px;
+      background: #222;
+      color: white;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .botao:hover {
+      opacity: 0.9;
+    }
+
+    .botao:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .arquivo {
+      margin-top: 18px;
+      padding: 14px;
+      background: #f5f5f5;
+      border-radius: 12px;
+      color: #444;
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .status {
+      margin-top: 20px;
+      min-height: 24px;
+      font-weight: bold;
+      color: #444;
+    }
+
+    .progresso {
+      width: 100%;
+      height: 10px;
+      background: #eee;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-top: 12px;
+      display: none;
+    }
+
+    .barra {
+      height: 100%;
+      width: 0%;
+      background: #222;
+      transition: width 0.2s;
+    }
+
+    .resultado {
+      margin-top: 22px;
+      display: none;
+    }
+
+    .salvar {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: #28a745;
+      color: white;
+      text-decoration: none;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .observacao {
+      margin-top: 22px;
+      font-size: 13px;
+      color: #777;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app">
+
+    <div class="icone">🎵</div>
+
+    <h1>Guia Converter</h1>
+
+    <p class="subtitulo">
+      Transforme seu vídeo em áudio
+    </p>
+
+    <!-- Selecionar arquivo -->
+    <label for="arquivoVideo" class="botao">
+      📁 Selecionar MP4
+    </label>
+
+    <input
+      type="file"
+      id="arquivoVideo"
+      accept="video/mp4,video/*"
+    >
+
+    <div id="nomeArquivo" class="arquivo" style="display:none;"></div>
+
+    <!-- Botão converter -->
+    <button id="btnConverter" class="botao" disabled>
+      🎧 Extrair áudio
+    </button>
+
+    <div id="status" class="status"></div>
+
+    <div id="progresso" class="progresso">
+      <div id="barra" class="barra"></div>
+    </div>
+
+    <!-- Resultado -->
+    <div id="resultado" class="resultado">
+
+      <a
+        id="btnSalvar"
+        class="salvar"
+        href="#"
+        download="audio.m4a"
+      >
+        💾 Salvar áudio
+      </a>
+
+    </div>
+
+    <p class="observacao">
+      A conversão acontece no próprio navegador.
+      O vídeo não precisa ser enviado para um servidor.
+    </p>
+
+  </div>
+
+
+  <script type="module">
+
+   <script type="module">
+
+import { FFmpeg } from
+  "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js";
+
+import {
+  fetchFile,
+  toBlobURL
+} from
+  "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/esm/index.js";
+
+
+const ffmpeg = new FFmpeg();
+
+let ffmpegCarregado = false;
+let arquivoSelecionado = null;
+
+
+const inputArquivo =
+  document.getElementById("arquivoVideo");
+
+const nomeArquivo =
+  document.getElementById("nomeArquivo");
+
+const btnConverter =
+  document.getElementById("btnConverter");
+
+const status =
+  document.getElementById("status");
+
+const progresso =
+  document.getElementById("progresso");
+
+const barra =
+  document.getElementById("barra");
+
+const resultado =
+  document.getElementById("resultado");
+
+const btnSalvar =
+  document.getElementById("btnSalvar");
+
+
+// ----------------------------------------
+// LOG DO FFMPEG
+// ----------------------------------------
+
+ffmpeg.on("log", ({ message }) => {
+
+  console.log("FFmpeg:", message);
+
+});
+
+
+// ----------------------------------------
+// PROGRESSO
+// ----------------------------------------
+
+ffmpeg.on("progress", ({ progress }) => {
+
+  const porcentagem =
+    Math.max(
+      0,
+      Math.min(100, progress * 100)
+    );
+
+  barra.style.width =
+    porcentagem + "%";
+
+  status.textContent =
+    "⚙️ Convertendo... " +
+    Math.round(porcentagem) +
+    "%";
+
+});
+
+
+// ----------------------------------------
+// SELEÇÃO DO VÍDEO
+// ----------------------------------------
+
+inputArquivo.addEventListener(
+  "change",
+  function() {
+
+    arquivoSelecionado =
+      this.files[0];
+
+    if (!arquivoSelecionado) {
+      return;
+    }
+
+    nomeArquivo.style.display =
+      "block";
+
+    nomeArquivo.textContent =
+      "📹 " +
+      arquivoSelecionado.name;
+
+    btnConverter.disabled =
+      false;
+
+    resultado.style.display =
+      "none";
+
+    status.textContent =
+      "Vídeo selecionado. Pronto para converter.";
+
+    barra.style.width =
+      "0%";
+
+  }
+);
+
+
+// ----------------------------------------
+// CARREGAR FFMPEG
+// ----------------------------------------
+
+async function carregarFFmpeg() {
+
+  if (ffmpegCarregado) {
+    return;
+  }
+
+  status.textContent =
+    "⏳ Carregando o conversor...";
+
+  const baseURL =
+    "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
+
+
+  console.log(
+    "Carregando FFmpeg..."
+  );
+
+
+  await ffmpeg.load({
+
+    coreURL:
+      await toBlobURL(
+        `${baseURL}/ffmpeg-core.js`,
+        "text/javascript"
+      ),
+
+    wasmURL:
+      await toBlobURL(
+        `${baseURL}/ffmpeg-core.wasm`,
+        "application/wasm"
+      )
+
+  });
+
+
+  ffmpegCarregado =
+    true;
+
+
+  console.log(
+    "FFmpeg carregado!"
+  );
+
+}
+
+
+// ----------------------------------------
+// CONVERTER
+// ----------------------------------------
+
+btnConverter.addEventListener(
+  "click",
+  async function() {
+
+    if (!arquivoSelecionado) {
+      return;
+    }
+
+
+    btnConverter.disabled =
+      true;
+
+    resultado.style.display =
+      "none";
+
+    progresso.style.display =
+      "block";
+
+    barra.style.width =
+      "0%";
+
+
+    try {
+
+      // 1 — carregar FFmpeg
+
+      await carregarFFmpeg();
+
+
+      // 2 — enviar vídeo para o FFmpeg
+
+      status.textContent =
+        "📥 Preparando o vídeo...";
+
+
+      console.log(
+        "Arquivo:",
+        arquivoSelecionado.name
+      );
+
+      console.log(
+        "Tamanho:",
+        arquivoSelecionado.size
+      );
+
+
+      await ffmpeg.writeFile(
+        "entrada.mp4",
+        await fetchFile(
+          arquivoSelecionado
+        )
+      );
+
+
+      console.log(
+        "Vídeo enviado para o FFmpeg."
+      );
+
+
+      // 3 — extrair áudio
+
+      status.textContent =
+        "🎧 Extraindo o áudio...";
+
+
+      const resultadoFFmpeg =
+        await ffmpeg.exec([
+
+          "-i",
+          "entrada.mp4",
+
+          "-vn",
+
+          "-c:a",
+          "aac",
+
+          "-b:a",
+          "192k",
+
+          "audio.m4a"
+
+        ]);
+
+
+      console.log(
+        "Resultado FFmpeg:",
+        resultadoFFmpeg
+      );
+
+
+      // 4 — ler o áudio produzido
+
+      status.textContent =
+        "💾 Preparando o arquivo...";
+
+
+      const audio =
+        await ffmpeg.readFile(
+          "audio.m4a"
+        );
+
+
+      console.log(
+        "Áudio gerado:",
+        audio
+      );
+
+
+      // 5 — criar arquivo para download
+
+      const blob =
+        new Blob(
+          [audio.buffer],
+          {
+            type: "audio/mp4"
+          }
+        );
+
+
+      const url =
+        URL.createObjectURL(blob);
+
+
+      // 6 — preparar botão salvar
+
+      const nomeOriginal =
+        arquivoSelecionado.name
+          .replace(/\.[^/.]+$/, "");
+
+
+      btnSalvar.href =
+        url;
+
+      btnSalvar.download =
+        nomeOriginal + ".m4a";
+
+
+      resultado.style.display =
+        "block";
+
+
+      status.textContent =
+        "✅ Áudio pronto!";
+
+
+    } catch (erro) {
+
+      console.error(
+        "ERRO COMPLETO:",
+        erro
+      );
+
+
+      status.textContent =
+        "❌ Ocorreu um erro.";
+
+
+      // Mostra o erro na própria tela
+      // para não precisarmos abrir o console.
+
+      alert(
+        "ERRO DO CONVERSOR:\n\n" +
+        (
+          erro?.message ||
+          erro?.toString() ||
+          "Erro desconhecido"
+        )
+      );
+
+    }
+
+
+    btnConverter.disabled =
+      false;
+
+  }
+);
+
+ 
+  </script>
+
+</body>
+</html>
