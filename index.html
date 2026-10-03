@@ -1,299 +1,287 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guia Converter - Extrator e Conversor Rápido de Áudio</title>
+    
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --primary-dark: #3b5984;
+            --secondary: #f4f6f9;
+            --accent: #ff6b6b;
+            --text: #2c3e50;
+            --card-bg: #ffffff;
+            --border: #e1e8ed;
+            --success: #059669;
+        }
 
-  <title>Guia Converter</title>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+        body {
+            background-color: #f0f4f8;
+            color: var(--text);
+            padding: 20px;
+            max-width: 650px;
+            margin: 0 auto;
+        }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #ffd86b, #f6a23a);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
+        header {
+            text-align: center;
+            padding: 20px 0;
+        }
 
-    .app {
-      width: 100%;
-      max-width: 500px;
-      background: white;
-      border-radius: 24px;
-      padding: 30px 24px;
-      text-align: center;
-      box-shadow: 0 10px 35px rgba(0,0,0,0.15);
-    }
+        h1 {
+            font-size: 1.6rem;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+        }
 
-    h1 {
-      margin: 0 0 8px;
-      font-size: 30px;
-      color: #222;
-    }
+        p.subtitle {
+            font-size: 0.95rem;
+            color: #64748b;
+        }
 
-    .subtitulo {
-      margin: 0 0 25px;
-      color: #666;
-      font-size: 16px;
-    }
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
 
-    .icone {
-      font-size: 55px;
-      margin-bottom: 10px;
-    }
+        .drop-zone {
+            border: 2px dashed var(--primary);
+            border-radius: 8px;
+            padding: 30px 20px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
 
-    input[type="file"] {
-      display: none;
-    }
+        .drop-zone:hover {
+            background: #f1f5f9;
+            border-color: var(--primary-dark);
+        }
 
-    .botao {
-      display: inline-block;
-      width: 100%;
-      padding: 16px;
-      border: none;
-      border-radius: 14px;
-      background: #222;
-      color: white;
-      font-size: 17px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
-    }
+        input[type="file"] {
+            display: none;
+        }
 
-    .botao:hover {
-      opacity: 0.9;
-    }
+        .file-info {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #475569;
+            word-break: break-all;
+        }
 
-    .botao:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
 
-    .arquivo {
-      margin-top: 18px;
-      padding: 14px;
-      background: #f5f5f5;
-      border-radius: 12px;
-      color: #444;
-      font-size: 14px;
-      word-break: break-word;
-    }
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
 
-    .status {
-      margin-top: 20px;
-      min-height: 24px;
-      font-weight: bold;
-      color: #444;
-    }
+        .btn:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+        }
 
-    .progresso {
-      width: 100%;
-      height: 10px;
-      background: #eee;
-      border-radius: 20px;
-      overflow: hidden;
-      margin-top: 12px;
-      display: none;
-    }
+        .status-box {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            text-align: center;
+            display: none;
+        }
 
-    .barra {
-      height: 100%;
-      width: 0%;
-      background: #222;
-      transition: width 0.2s;
-    }
+        .status-processing {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
 
-    .resultado {
-      margin-top: 22px;
-      display: none;
-    }
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
 
-    .salvar {
-      display: block;
-      width: 100%;
-      padding: 16px;
-      background: #28a745;
-      color: white;
-      text-decoration: none;
-      border-radius: 14px;
-      font-size: 17px;
-      font-weight: bold;
-    }
-
-    .observacao {
-      margin-top: 22px;
-      font-size: 13px;
-      color: #777;
-      line-height: 1.5;
-    }
-  </style>
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+    </style>
 </head>
-
 <body>
 
-  <div class="app">
+    <header>
+        <h1>⚡ Guia Converter</h1>
+        <p class="subtitle">Extraia e converta áudio de vídeos/áudios em segundos via RAM</p>
+    </header>
 
-    <div class="icone">🎵</div>
+    <div class="card">
+        <label for="inputArquivo" class="drop-zone" id="dropZone">
+            📁 <b>Clique aqui</b> ou arraste um ficheiro de áudio/vídeo (MP4, MP3, MOV, WebM, etc.)
+        </label>
+        <input type="file" id="inputArquivo" accept="audio/*,video/*">
 
-    <h1>Guia Converter</h1>
+        <div id="fileInfo" class="file-info"></div>
 
-    <p class="subtitulo">
-      Transforme seu vídeo em áudio
-    </p>
+        <button class="btn" id="btnConverter" disabled>⚡ Converter para WAV em alta velocidade</button>
 
-    <!-- Selecionar arquivo -->
-    <label for="arquivoVideo" class="botao">
-      📁 Selecionar MP4
-    </label>
-
-    <input
-      type="file"
-      id="arquivoVideo"
-      accept="video/mp4,video/*"
-    >
-
-    <div id="nomeArquivo" class="arquivo" style="display:none;"></div>
-
-    <!-- Botão converter -->
-    <button id="btnConverter" class="botao" disabled>
-      🎧 Extrair áudio
-    </button>
-
-    <div id="status" class="status"></div>
-
-    <div id="progresso" class="progresso">
-      <div id="barra" class="barra"></div>
+        <div id="statusBox" class="status-box"></div>
     </div>
 
-    <!-- Resultado -->
-    <div id="resultado" class="resultado">
+    <script>
+        const inputArquivo = document.getElementById('inputArquivo');
+        const fileInfo = document.getElementById('fileInfo');
+        const btnConverter = document.getElementById('btnConverter');
+        const statusBox = document.getElementById('statusBox');
 
-      <a
-        id="btnSalvar"
-        class="salvar"
-        href="#"
-        download="audio.mp4"
-      >
-        💾 Salvar áudio
-      </a>
+        let arquivoSelecionado = null;
 
-    </div>
-
-    <p class="observacao">
-      A conversão acontece no próprio navegador.
-      O vídeo não precisa ser enviado para um servidor.
-    </p>
-
-  </div>
-
-  <script>
-    const inputArquivo = document.getElementById("arquivoVideo");
-    const nomeArquivo = document.getElementById("nomeArquivo");
-    const btnConverter = document.getElementById("btnConverter");
-    const status = document.getElementById("status");
-    const progresso = document.getElementById("progresso");
-    const barra = document.getElementById("barra");
-    const resultado = document.getElementById("resultado");
-    const btnSalvar = document.getElementById("btnSalvar");
-
-    let arquivoSelecionado = null;
-
-    inputArquivo.addEventListener("change", function() {
-      arquivoSelecionado = this.files[0];
-      if (!arquivoSelecionado) return;
-
-      nomeArquivo.style.display = "block";
-      nomeArquivo.textContent = "📹 " + arquivoSelecionado.name;
-      btnConverter.disabled = false;
-      resultado.style.display = "none";
-      status.textContent = "Vídeo selecionado. Pronto para extrair o áudio.";
-      barra.style.width = "0%";
-    });
-
-    btnConverter.addEventListener("click", async function() {
-      if (!arquivoSelecionado) return;
-
-      btnConverter.disabled = true;
-      resultado.style.display = "none";
-      progresso.style.display = "block";
-      barra.style.width = "30%";
-      status.textContent = "⏳ Processando vídeo...";
-
-      try {
-        // Criar um elemento de vídeo temporário na memória
-        const videoElement = document.createElement('video');
-        videoElement.src = URL.createObjectURL(arquivoSelecionado);
-        videoElement.muted = true;
-        
-        await new Promise((resolve, reject) => {
-          videoElement.onloadedmetadata = () => resolve();
-          videoElement.onerror = () => reject(new Error("Não foi possível ler o arquivo de vídeo."));
+        inputArquivo.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                arquivoSelecionado = e.target.files[0];
+                fileInfo.innerHTML = `<b>Ficheiro selecionado:</b> ${arquivoSelecionado.name} (${(arquivoSelecionado.size / (1024 * 1024)).toFixed(2)} MB)`;
+                btnConverter.disabled = false;
+                esconderStatus();
+            }
         });
 
-        barra.style.width = "60%";
-        status.textContent = "🎧 Extraindo faixa de áudio...";
+        btnConverter.addEventListener('click', async () => {
+            if (!arquivoSelecionado) return;
 
-        // Usar Streams / MediaElementAudioSource para extrair o áudio diretamente
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioCtx.createMediaElementSource(videoElement);
-        const destination = audioCtx.createMediaStreamDestination();
-        source.connect(destination);
-        source.connect(audioCtx.destination);
+            btnConverter.disabled = true;
+            mostrarStatus('⏳ A processar e extrair áudio em alta velocidade...', 'processing');
 
-        const mediaRecorder = new MediaRecorder(destination.stream, {
-          mimeType: MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm'
+            try {
+                const tempoInicio = performance.now();
+                const wavBlob = await converterParaWavRapido(arquivoSelecionado);
+                const tempoTotal = ((performance.now() - tempoInicio) / 1000).toFixed(2);
+
+                // Criar link de download automático
+                const downloadUrl = URL.createObjectURL(wavBlob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = arquivoSelecionado.name.replace(/\.[^/.]+$/, "") + "_convertido.wav";
+                a.click();
+
+                mostrarStatus(`✅ Concluído com sucesso em ${tempoTotal}s! O download começou automaticamente.`, 'success');
+            } catch (err) {
+                console.error(err);
+                mostrarStatus('❌ Erro ao converter o ficheiro. Certifique-se de que é um formato válido.', 'error');
+            } finally {
+                btnConverter.disabled = false;
+            }
         });
 
-        const chunks = [];
-        mediaRecorder.ondataavailable = e => chunks.push(e.data);
-        
-        mediaRecorder.onstop = () => {
-          const blobType = mediaRecorder.mimeType;
-          const extension = blobType.includes('mp4') ? 'm4a' : 'webm';
-          const blob = new Blob(chunks, { type: blobType });
-          const url = URL.createObjectURL(blob);
+        // ============================================================
+        // LÓGICA DE CONVERSÃO RÁPIDA (DO GUIA PLAY)
+        // ============================================================
+        async function converterParaWavRapido(arquivoInput) {
+            const arrayBuffer = await arquivoInput.arrayBuffer();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-          const nomeOriginal = arquivoSelecionado.name.replace(/\.[^/.]+$/, "");
-          btnSalvar.href = url;
-          btnSalvar.download = nomeOriginal + "." + extension;
+            // Decodifica áudio direto em memória
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
-          barra.style.width = "100%";
-          resultado.style.display = "block";
-          status.textContent = "✅ Áudio pronto com sucesso!";
-          btnConverter.disabled = false;
-        };
+            // Renderiza offline na velocidade máxima do processador
+            const offlineCtx = new OfflineAudioContext(
+                audioBuffer.numberOfChannels,
+                audioBuffer.length,
+                audioBuffer.sampleRate
+            );
 
-        mediaRecorder.start();
-        videoElement.play();
+            const source = offlineCtx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(offlineCtx.destination);
+            source.start();
 
-        videoElement.onended = () => {
-          mediaRecorder.stop();
-          audioCtx.close();
-        };
+            const renderedBuffer = await offlineCtx.startRendering();
 
-        // Segurança caso o vídeo demore ou ocorra interrupção
-        setTimeout(() => {
-          if (videoElement.paused && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-          }
-        }, (videoElement.duration * 1000) + 2000);
+            // Transforma o buffer para Blob do tipo WAV
+            return audioBufferToWavBlob(renderedBuffer);
+        }
 
-      } catch (erro) {
-        console.error("ERRO:", erro);
-        status.textContent = "❌ Erro ao extrair áudio.";
-        alert("Erro ao processar o arquivo: " + (erro.message || erro));
-        btnConverter.disabled = false;
-        progresso.style.display = "none";
-      }
-    });
-  </script>
+        function audioBufferToWavBlob(buffer) {
+            const numOfChan = buffer.numberOfChannels;
+            const length = buffer.length * numOfChan * 2 + 44;
+            const out = new DataView(new ArrayBuffer(length));
+            let channels = [], sampleRate = buffer.sampleRate, offset = 0, pos = 0;
 
+            function writeString(str) {
+                for (let i = 0; i < str.length; i++) out.setUint8(pos++, str.charCodeAt(i));
+            }
+            function setUint16(data) { out.setUint16(pos, data, true); pos += 2; }
+            function setUint32(data) { out.setUint32(pos, data, true); pos += 4; }
+
+            writeString('RIFF');
+            setUint32(length - 8);
+            writeString('WAVE');
+            writeString('fmt ');
+            setUint32(16);
+            setUint16(1);
+            setUint16(numOfChan);
+            setUint32(sampleRate);
+            setUint32(sampleRate * 2 * numOfChan);
+            setUint16(numOfChan * 2);
+            setUint16(16);
+            writeString('data');
+            setUint32(length - pos - 4);
+
+            for (let i = 0; i < buffer.numberOfChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            while (offset < buffer.length) {
+                for (let i = 0; i < numOfChan; i++) {
+                    let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+                    out.setInt16(pos, sample, true);
+                    pos += 2;
+                }
+                offset++;
+            }
+
+            return new Blob([out.buffer], { type: 'audio/wav' });
+        }
+
+        function mostrarStatus(texto, tipo) {
+            statusBox.style.display = 'block';
+            statusBox.innerText = texto;
+            statusBox.className = `status-box status-${tipo}`;
+        }
+
+        function esconderStatus() {
+            statusBox.style.display = 'none';
+        }
+    </script>
 </body>
 </html>
